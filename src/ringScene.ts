@@ -1,19 +1,24 @@
 import {
+  ACESFilmicToneMapping,
   AmbientLight,
   BufferGeometry,
+  CanvasTexture,
   CatmullRomCurve3,
   Color,
   DirectionalLight,
   Float32BufferAttribute,
   Mesh,
-  MeshStandardMaterial,
+  MeshPhysicalMaterial,
   PerspectiveCamera,
+  PMREMGenerator,
+  RepeatWrapping,
   Scene,
   Vector2,
   Vector3,
   WebGLRenderer
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { RingParameters } from "./types";
 
 const TAU = Math.PI * 2;
@@ -31,23 +36,24 @@ export class RingScene {
   private readonly scene: Scene;
   private readonly camera: PerspectiveCamera;
   private readonly controls: OrbitControls;
-  private readonly ringMaterial: MeshStandardMaterial;
+  private readonly ringMaterial: MeshPhysicalMaterial;
+  private readonly scratchTextures: ScratchTextures;
 
-  private ringMesh: Mesh<BufferGeometry, MeshStandardMaterial> | null = null;
+  private ringMesh: Mesh<BufferGeometry, MeshPhysicalMaterial> | null = null;
   private animationId: number | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
     this.canvas = document.createElement("canvas");
     this.renderer = new WebGLRenderer({ antialias: true, canvas: this.canvas });
+    this.renderer.toneMapping = ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.physicallyCorrectLights = true;
     this.scene = new Scene();
     this.camera = new PerspectiveCamera(45, 1, 0.1, 100);
     this.controls = new OrbitControls(this.camera, this.canvas);
-    this.ringMaterial = new MeshStandardMaterial({
-      color: new Color("#38bdf8"),
-      roughness: 0.35,
-      metalness: 0.7
-    });
+    this.scratchTextures = createScratchTextures();
+    this.ringMaterial = createGoldMaterial(this.renderer, this.scratchTextures);
 
     this.setupScene();
     this.container.appendChild(this.canvas);
@@ -75,6 +81,7 @@ export class RingScene {
 
   private setupScene(): void {
     this.scene.background = new Color("#060810");
+    this.applyEnvironment();
 
     this.camera.position.set(4, 2.5, 4);
     this.controls.enableDamping = true;
@@ -85,6 +92,13 @@ export class RingScene {
     keyLight.position.set(4, 6, 3);
 
     this.scene.add(ambient, keyLight);
+  }
+
+  private applyEnvironment(): void {
+    const pmrem = new PMREMGenerator(this.renderer);
+    const environmentRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
+    this.scene.environment = environmentRT.texture;
+    pmrem.dispose();
   }
 
   private start(): void {
@@ -257,4 +271,138 @@ function symmetricRamp(value: number): number {
 function smoothstep01(t: number): number {
   const clamped = Math.min(Math.max(t, 0), 1);
   return clamped * clamped * (3 - 2 * clamped);
+}
+
+interface ScratchTextures {
+  normalMap: CanvasTexture;
+  roughnessMap: CanvasTexture;
+}
+
+function createGoldMaterial(renderer: WebGLRenderer, textures: ScratchTextures): MeshPhysicalMaterial {
+  const anisotropy = renderer.capabilities.getMaxAnisotropy();
+  textures.normalMap.wrapS = textures.normalMap.wrapT = RepeatWrapping;
+  textures.roughnessMap.wrapS = textures.roughnessMap.wrapT = RepeatWrapping;
+  textures.normalMap.repeat.set(2.5, 2.5);
+  textures.roughnessMap.repeat.set(2.5, 2.5);
+  textures.normalMap.anisotropy = anisotropy;
+  textures.roughnessMap.anisotropy = anisotropy;
+
+  return new MeshPhysicalMaterial({
+    color: new Color("#d4af6a"),
+    metalness: 1,
+    roughness: 0.24,
+    roughnessMap: textures.roughnessMap,
+    normalMap: textures.normalMap,
+    normalScale: new Vector2(0.2, 0.2),
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.2,
+    envMapIntensity: 0.7,
+    sheen: 0.08,
+    sheenColor: new Color("#f6dc9c")
+  });
+}
+
+function createScratchTextures(size = 256): ScratchTextures {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) {
+    throw new Error("Failed to create roughness canvas context.");
+  }
+
+  ctx.fillStyle = "rgb(138, 126, 108)";
+  ctx.fillRect(0, 0, size, size);
+
+  const lineCount = Math.floor(size * 1.4);
+  for (let i = 0; i < lineCount; i += 1) {
+    const y = Math.random() * size;
+    const length = size * (0.3 + Math.random() * 0.35);
+    const angle = (Math.random() - 0.5) * 0.25;
+    const lineWidth = 0.05 + Math.random() * 0.35;
+    const brightness = 180 + Math.random() * 45;
+    const alpha = 0.05 + Math.random() * 0.15;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(Math.random() * size, y);
+    ctx.rotate(angle);
+    ctx.strokeStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+    ctx.lineWidth = lineWidth;
+    ctx.beginPath();
+    ctx.moveTo(-length * 0.5, 0);
+    ctx.lineTo(length * 0.5, 0);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = "rgba(40, 37, 33, 1)";
+  const speckCount = Math.floor(size * 0.3);
+  for (let i = 0; i < speckCount; i += 1) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const width = size * (0.05 + Math.random() * 0.04);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate((Math.random() - 0.5) * 0.6);
+    ctx.fillRect(-width * 0.5, -0.6, width, 1.2);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  const roughnessTexture = new CanvasTexture(canvas);
+  roughnessTexture.needsUpdate = true;
+
+  const imageData = ctx.getImageData(0, 0, size, size);
+  const heightData = new Float32Array(size * size);
+  for (let i = 0; i < size * size; i += 1) {
+    const offset = i * 4;
+    const r = imageData.data[offset];
+    const g = imageData.data[offset + 1];
+    const b = imageData.data[offset + 2];
+    heightData[i] = (r + g + b) / (3 * 255);
+  }
+
+  const normalCanvas = document.createElement("canvas");
+  normalCanvas.width = size;
+  normalCanvas.height = size;
+  const normalCtx = normalCanvas.getContext("2d");
+  if (!normalCtx) {
+    throw new Error("Failed to create normal canvas context.");
+  }
+
+  const normalImage = normalCtx.createImageData(size, size);
+  const normalData = normalImage.data;
+  const strength = 4.5;
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const left = heightData[y * size + ((x - 1 + size) % size)];
+      const right = heightData[y * size + ((x + 1) % size)];
+      const up = heightData[((y - 1 + size) % size) * size + x];
+      const down = heightData[((y + 1) % size) * size + x];
+
+      const dx = (right - left) * strength;
+      const dy = (down - up) * strength;
+      const dz = 1;
+
+      const invLen = 1 / Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const nx = dx * invLen;
+      const ny = dy * invLen;
+      const nz = dz * invLen;
+
+      const index = (y * size + x) * 4;
+      normalData[index] = (nx * 0.5 + 0.5) * 255;
+      normalData[index + 1] = (ny * 0.5 + 0.5) * 255;
+      normalData[index + 2] = (nz * 0.5 + 0.5) * 255;
+      normalData[index + 3] = 255;
+    }
+  }
+
+  normalCtx.putImageData(normalImage, 0, 0);
+  const normalTexture = new CanvasTexture(normalCanvas);
+  normalTexture.needsUpdate = true;
+
+  return { normalMap: normalTexture, roughnessMap: roughnessTexture };
 }
