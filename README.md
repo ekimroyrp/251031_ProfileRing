@@ -27,3 +27,4 @@ Open the URL printed by Vite (default `http://localhost:5173/`) to start sculpti
 ## Deployment
 - Build locally with `npm run build`; the static output lands in `dist/`.
 - Deploy to GitHub Pages with `npm run deploy` (publishes the contents of `dist/` to the `gh-pages` branch using relative asset paths).
+- Live demo: https://ekimroyrp.github.io/251031_ProfileRing/
