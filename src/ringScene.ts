@@ -74,7 +74,7 @@ export class RingScene {
   }
 
   private setupScene(): void {
-    this.scene.background = new Color("#0b1120");
+    this.scene.background = new Color("#060810");
 
     this.camera.position.set(4, 2.5, 4);
     this.controls.enableDamping = true;
