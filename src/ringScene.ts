@@ -9,6 +9,7 @@ import {
   Float32BufferAttribute,
   Mesh,
   MeshPhysicalMaterial,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   PMREMGenerator,
   RepeatWrapping,
@@ -48,6 +49,8 @@ export class RingScene {
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.physicallyCorrectLights = true;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = PCFSoftShadowMap;
     this.scene = new Scene();
     this.camera = new PerspectiveCamera(45, 1, 0.1, 100);
     this.controls = new OrbitControls(this.camera, this.canvas);
@@ -71,10 +74,14 @@ export class RingScene {
     if (this.ringMesh) {
       this.ringMesh.geometry.dispose();
       this.ringMesh.geometry = geometry;
+      this.ringMesh.castShadow = true;
+      this.ringMesh.receiveShadow = true;
       return;
     }
 
     this.ringMesh = new Mesh(geometry, this.ringMaterial);
+    this.ringMesh.castShadow = true;
+    this.ringMesh.receiveShadow = true;
     this.scene.add(this.ringMesh);
   }
 
@@ -86,11 +93,25 @@ export class RingScene {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
 
-    const ambient = new AmbientLight("#ffffff", 0.4);
-    const keyLight = new DirectionalLight("#f8fafc", 1.2);
-    keyLight.position.set(4, 6, 3);
+    const ambient = new AmbientLight("#dbe4ff", 0.18);
 
-    this.scene.add(ambient, keyLight);
+    const keyLight = new DirectionalLight("#fff2d6", 3.1);
+    keyLight.position.set(6, 8, 5);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(2048, 2048);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 25;
+    keyLight.shadow.bias = -0.00035;
+
+    const fillLight = new DirectionalLight("#a8c5ff", 0.55);
+    fillLight.position.set(-5, 3, -4);
+    fillLight.castShadow = false;
+
+    const rimLight = new DirectionalLight("#ffe4c7", 1.25);
+    rimLight.position.set(-3, 6, 8);
+    rimLight.castShadow = false;
+
+    this.scene.add(ambient, keyLight, fillLight, rimLight);
   }
 
   private applyEnvironment(): void {
