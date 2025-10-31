@@ -1,0 +1,9 @@
+Don't push to github unless I tell you to.
+Don't pull from github unless I tell you to.
+Always push and pull with git from my account ekimroyrp with the email ekimroyrp@gmail.com.
+When pushing to github, always push all files and folders.
+Give each git commited file or folder a unique description based on what the commit was about.
+Create an initial README.md which give a paragraph summary of the project as a whole as well as a features list at the first push commit to github.
+Update the README.md before each push commit to github to include any major new features, don't update the README.md with minor changes.
+Don't keep track of git commits after each instruction or git diff cacheing, only check changes when merging and pushing to github. 
+Don't compact the context unless I tell you to. 
