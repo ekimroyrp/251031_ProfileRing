@@ -245,5 +245,16 @@ function signedArea(points: Vector2[]): number {
 
 function symmetricRamp(value: number): number {
   const normalized = value - Math.floor(value);
-  return normalized <= 0.5 ? normalized * 2 : (1 - normalized) * 2;
+  if (normalized <= 0.5) {
+    const t = normalized / 0.5;
+    return smoothstep01(t);
+  }
+
+  const t = (normalized - 0.5) / 0.5;
+  return smoothstep01(1 - t);
+}
+
+function smoothstep01(t: number): number {
+  const clamped = Math.min(Math.max(t, 0), 1);
+  return clamped * clamped * (3 - 2 * clamped);
 }
