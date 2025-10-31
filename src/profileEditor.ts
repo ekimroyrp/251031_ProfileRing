@@ -1,23 +1,26 @@
 import { Vector2 } from "three";
+import { DEFAULT_PRESET_ID, getPresetVectors } from "./profilePresets";
 
 type ChangeListener = (points: Vector2[]) => void;
+type SelectionListener = (index: number | null, points: Vector2[]) => void;
 
 interface PointerState {
   pointerId: number;
   pointIndex: number;
 }
 
-const DEFAULT_POINTS = new Array(8).fill(0).map((_, index) => {
-  const theta = (index / 8) * Math.PI * 2;
-  return new Vector2(Math.cos(theta) * 0.35, Math.sin(theta) * 0.35);
-});
+const DEFAULT_POINTS = getPresetVectors(DEFAULT_PRESET_ID);
+const MIN_POINTS = 3;
+const MAX_POINTS = 64;
 
 export class ProfileEditor {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly points: Vector2[];
   private readonly listeners = new Set<ChangeListener>();
+  private readonly selectionListeners = new Set<SelectionListener>();
   private pointerState: PointerState | null = null;
+  private selectedIndex: number | null = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     const context = canvas.getContext("2d");
@@ -40,8 +43,70 @@ export class ProfileEditor {
     return () => this.listeners.delete(listener);
   }
 
+  public onSelectionChange(listener: SelectionListener): () => void {
+    this.selectionListeners.add(listener);
+    listener(this.selectedIndex, this.getPoints());
+    return () => this.selectionListeners.delete(listener);
+  }
+
   public getPoints(): Vector2[] {
     return this.points.map((point) => point.clone());
+  }
+
+  public addPoint(): void {
+    if (!this.canAddPoint()) {
+      return;
+    }
+
+    this.pointerState = null;
+    const insertAfter = this.selectedIndex ?? 0;
+    const nextIndex = (insertAfter + 1) % this.points.length;
+    const newPoint = this.points[insertAfter].clone().lerp(this.points[nextIndex], 0.5);
+    this.points.splice(nextIndex, 0, newPoint);
+    this.selectedIndex = nextIndex;
+    this.draw();
+    this.emitSelection();
+    this.emitChange();
+  }
+
+  public removeSelectedPoint(): void {
+    if (!this.canRemovePoint()) {
+      return;
+    }
+
+    this.pointerState = null;
+    if (this.selectedIndex === null) {
+      this.points.pop();
+      this.selectedIndex = this.points.length - 1;
+    } else {
+      this.points.splice(this.selectedIndex, 1);
+      this.selectedIndex = Math.min(this.selectedIndex, this.points.length - 1);
+    }
+
+    this.draw();
+    this.emitSelection();
+    this.emitChange();
+  }
+
+  public canAddPoint(): boolean {
+    return this.points.length < MAX_POINTS;
+  }
+
+  public canRemovePoint(): boolean {
+    return this.points.length > MIN_POINTS;
+  }
+
+  public applyPreset(preset: Vector2[]): void {
+    if (!preset.length) {
+      return;
+    }
+
+    this.pointerState = null;
+    this.points.splice(0, this.points.length, ...preset.map((point) => point.clone()));
+    this.selectedIndex = 0;
+    this.draw();
+    this.emitSelection();
+    this.emitChange();
   }
 
   private configureCanvas(): void {
@@ -72,6 +137,7 @@ export class ProfileEditor {
 
     this.canvas.setPointerCapture(event.pointerId);
     this.pointerState = { pointerId: event.pointerId, pointIndex: index };
+    this.selectIndex(index);
     this.updatePoint(index, pointer);
   };
 
@@ -155,14 +221,15 @@ export class ProfileEditor {
     }
     ctx.stroke();
 
-    this.points.forEach((point) => {
+    this.points.forEach((point, index) => {
       const { x, y } = this.toCanvas(point);
-      ctx.fillStyle = "#f8fafc";
+      const isSelected = index === this.selectedIndex;
+      ctx.fillStyle = isSelected ? "#e0f2fe" : "#f8fafc";
       ctx.beginPath();
       ctx.arc(x, y, 6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#0ea5e9";
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = isSelected ? "#22d3ee" : "#0ea5e9";
+      ctx.lineWidth = isSelected ? 3 : 2;
       ctx.stroke();
     });
 
@@ -205,5 +272,20 @@ export class ProfileEditor {
       centerY: this.canvas.clientHeight / 2,
       scale: this.canvas.clientWidth * 0.45
     };
+  }
+
+  private selectIndex(index: number): void {
+    if (this.selectedIndex === index) {
+      return;
+    }
+
+    this.selectedIndex = index;
+    this.draw();
+    this.emitSelection();
+  }
+
+  private emitSelection(): void {
+    const payload = this.getPoints();
+    this.selectionListeners.forEach((listener) => listener(this.selectedIndex, payload));
   }
 }
