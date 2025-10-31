@@ -131,10 +131,12 @@ function buildRingGeometry(points: Vector2[], parameters: RingParameters): Buffe
   for (let segment = 0; segment < radialSegments; segment += 1) {
     const v = segment / radialSegments;
     const angle = v * TAU;
-    const twist = twistRadians * v;
+    const ramp = symmetricRamp(v);
+    const twist = twistRadians * ramp;
     const cosTwist = Math.cos(twist);
     const sinTwist = Math.sin(twist);
-    const localScale = parameters.profileScale * (1 + parameters.taper * (v - 0.5));
+    const scaleFactor = 1 + parameters.taper * ramp;
+    const localScale = parameters.profileScale * Math.max(0.05, scaleFactor);
 
     radial.set(Math.cos(angle), 0, Math.sin(angle));
     center.copy(radial).multiplyScalar(DEFAULT_RING_RADIUS);
@@ -239,4 +241,9 @@ function signedArea(points: Vector2[]): number {
     area += current.x * next.y - next.x * current.y;
   }
   return area / 2;
+}
+
+function symmetricRamp(value: number): number {
+  const normalized = value - Math.floor(value);
+  return normalized <= 0.5 ? normalized * 2 : (1 - normalized) * 2;
 }
