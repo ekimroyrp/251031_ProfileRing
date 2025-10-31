@@ -12,6 +12,10 @@ function bootstrap(): void {
 
   root.innerHTML = `
     <div class="app-shell">
+      <div class="hud">
+        <h1>Profile Ring Designer</h1>
+        <p>Drag profile nodes, adjust sliders, and orbit to preview the generated ring.</p>
+      </div>
       <section class="viewport" data-role="viewport"></section>
       <section class="overlay">
         <canvas class="profile-editor" width="220" height="220"></canvas>

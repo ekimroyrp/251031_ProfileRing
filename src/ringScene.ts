@@ -1,6 +1,7 @@
 import {
   AmbientLight,
   BufferGeometry,
+  CatmullRomCurve3,
   Color,
   DirectionalLight,
   Float32BufferAttribute,
@@ -112,7 +113,7 @@ export class RingScene {
 
 function buildRingGeometry(points: Vector2[], parameters: RingParameters): BufferGeometry {
   const radialSegments = Math.max(8, Math.floor(parameters.radialSegments));
-  const profile = ensureClosedProfile(points);
+  const profile = ensureClosedProfile(sampleProfile(points));
   const profileSegments = profile.length;
   const twistRadians = (parameters.twistDegrees * Math.PI) / 180;
 
@@ -182,6 +183,26 @@ function buildRingGeometry(points: Vector2[], parameters: RingParameters): Buffe
   geometry.computeVertexNormals();
 
   return geometry;
+}
+
+function sampleProfile(points: Vector2[]): Vector2[] {
+  if (points.length < 3) {
+    return points.map((point) => point.clone());
+  }
+
+  const curvePoints = points.map((point) => new Vector3(point.x, point.y, 0));
+  const curve = new CatmullRomCurve3(curvePoints, true, "catmullrom", 0.5);
+  const segments = Math.max(curvePoints.length * 12, 96);
+  const sampled = curve.getPoints(segments).map((vertex) => new Vector2(vertex.x, vertex.y));
+
+  if (
+    sampled.length > 1 &&
+    sampled[0].distanceToSquared(sampled[sampled.length - 1]) < Number.EPSILON
+  ) {
+    sampled.pop();
+  }
+
+  return sampled;
 }
 
 function ensureClosedProfile(points: Vector2[]): Vector2[] {
