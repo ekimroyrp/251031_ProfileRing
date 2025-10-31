@@ -172,7 +172,7 @@ function buildRingGeometry(points: Vector2[], parameters: RingParameters): Buffe
       const c = nextSegment * profileSegments + nextIndex;
       const d = segment * profileSegments + nextIndex;
 
-      indices.push(a, b, d, b, c, d);
+      indices.push(a, d, b, b, d, c);
     }
   }
 
