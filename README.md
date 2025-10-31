@@ -23,3 +23,7 @@ Open the URL printed by Vite (default `http://localhost:5173/`) to start sculpti
 - Use the buttons beneath the canvas to add/remove control points or instantly swap to a preset profile.
 - Use the sliders to adjust the number of profiles distributed around the circle, twist the copies progressively, scale the overall profile, taper it, fine-tune ring radius/thickness, and dial in per-copy scale/tilt modulation or partial arcs.
 - Orbit, pan, and zoom the viewport with your mouse (or trackpad) via OrbitControls to inspect the mesh from every angle.
+
+## Deployment
+- Build locally with `npm run build`; the static output lands in `dist/`.
+- Deploy to GitHub Pages with `npm run deploy` (publishes the contents of `dist/` to the `gh-pages` branch using relative asset paths).
