@@ -13,6 +13,7 @@ import {
   PMREMGenerator,
   RepeatWrapping,
   Scene,
+  Quaternion,
   Vector2,
   Vector3,
   WebGLRenderer
@@ -22,8 +23,6 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { RingParameters } from "./types";
 
 const TAU = Math.PI * 2;
-const DEFAULT_RING_RADIUS = 1.5;
-
 interface Size {
   width: number;
   height: number;
@@ -126,34 +125,62 @@ export class RingScene {
 }
 
 function buildRingGeometry(points: Vector2[], parameters: RingParameters): BufferGeometry {
-  const radialSegments = Math.max(8, Math.floor(parameters.radialSegments));
+  const closed = parameters.arcDegrees >= 359.9;
+  const arcDegrees = Math.min(parameters.arcDegrees, 360);
+  const arcFraction = closed ? 1 : arcDegrees / 360;
+  const baseSegments = Math.max(2, Math.floor(parameters.radialSegments * arcFraction));
+  const radialSegments = Math.max(closed ? 3 : 2, baseSegments);
+  const arcRadians = closed ? TAU : (arcDegrees * Math.PI) / 180;
   const profile = ensureClosedProfile(ensureCounterClockwise(sampleProfile(points)));
   const profileSegments = profile.length;
   const twistRadians = (parameters.twistDegrees * Math.PI) / 180;
+  const tiltAmplitude = (parameters.tiltVariance * Math.PI) / 180;
+  const scaleVariance = parameters.scaleVariance;
+  const scaleFrequency = Math.max(0, parameters.scaleFrequency);
+  const tiltFrequency = Math.max(0, parameters.tiltFrequency);
 
   const vertexCount = radialSegments * profileSegments;
   const positions = new Float32Array(vertexCount * 3);
   const uvs = new Float32Array(vertexCount * 2);
   const indices: number[] = [];
 
-  const radial = new Vector3();
+  const baseRadial = new Vector3();
   const binormal = new Vector3(0, 1, 0);
+  const radialTilted = new Vector3();
+  const binormalTilted = new Vector3();
+  const tangent = new Vector3();
   const center = new Vector3();
   const offset = new Vector3();
   const twisted = new Vector2();
+  const tiltQuaternion = new Quaternion();
+  const baseScaleClamp = Math.max(0.05, parameters.profileScale);
 
   for (let segment = 0; segment < radialSegments; segment += 1) {
-    const v = segment / radialSegments;
-    const angle = v * TAU;
-    const ramp = symmetricRamp(v);
+    const segmentT = closed ? segment / radialSegments : segment / (radialSegments - 1);
+    const angle = closed ? segmentT * TAU : segmentT * arcRadians;
+    const ramp = symmetricRamp(segmentT);
     const twist = twistRadians * ramp;
     const cosTwist = Math.cos(twist);
     const sinTwist = Math.sin(twist);
-    const scaleFactor = 1 + parameters.taper * ramp;
-    const localScale = parameters.profileScale * Math.max(0.05, scaleFactor);
+    const scaleFactor = Math.max(0.2, 1 + parameters.taper * ramp);
+    const scaleWave =
+      1 + scaleVariance * Math.sin(segmentT * scaleFrequency * TAU);
+    const localScale = baseScaleClamp * scaleFactor * Math.max(0.25, scaleWave);
 
-    radial.set(Math.cos(angle), 0, Math.sin(angle));
-    center.copy(radial).multiplyScalar(DEFAULT_RING_RADIUS);
+    baseRadial.set(Math.cos(angle), 0, Math.sin(angle));
+    center.copy(baseRadial).multiplyScalar(parameters.ringRadius);
+    tangent.set(-Math.sin(angle), 0, Math.cos(angle));
+
+    const tiltAngle =
+      tiltAmplitude * Math.sin(segmentT * tiltFrequency * TAU);
+    if (Math.abs(tiltAngle) > 1e-4) {
+      tiltQuaternion.setFromAxisAngle(tangent, tiltAngle);
+      radialTilted.copy(baseRadial).applyQuaternion(tiltQuaternion);
+      binormalTilted.copy(binormal).applyQuaternion(tiltQuaternion);
+    } else {
+      radialTilted.copy(baseRadial);
+      binormalTilted.copy(binormal);
+    }
 
     for (let i = 0; i < profileSegments; i += 1) {
       const point = profile[i];
@@ -163,9 +190,9 @@ function buildRingGeometry(points: Vector2[], parameters: RingParameters): Buffe
       );
 
       offset
-        .copy(radial)
-        .multiplyScalar(twisted.x * localScale)
-        .addScaledVector(binormal, twisted.y * localScale);
+        .copy(radialTilted)
+        .multiplyScalar(twisted.x * localScale * parameters.thickness)
+        .addScaledVector(binormalTilted, twisted.y * localScale);
 
       const vertexIndex = segment * profileSegments + i;
       const vertexOffset = vertexIndex * 3;
@@ -175,12 +202,16 @@ function buildRingGeometry(points: Vector2[], parameters: RingParameters): Buffe
 
       const uvOffset = vertexIndex * 2;
       uvs[uvOffset] = i / (profileSegments - 1);
-      uvs[uvOffset + 1] = v;
+      uvs[uvOffset + 1] = segmentT;
     }
   }
 
   for (let segment = 0; segment < radialSegments; segment += 1) {
-    const nextSegment = (segment + 1) % radialSegments;
+    const isLast = segment === radialSegments - 1;
+    const nextSegment = closed ? (segment + 1) % radialSegments : segment + 1;
+    if (!closed && isLast) {
+      continue;
+    }
     for (let i = 0; i < profileSegments - 1; i += 1) {
       const nextIndex = i + 1;
       const a = segment * profileSegments + i;

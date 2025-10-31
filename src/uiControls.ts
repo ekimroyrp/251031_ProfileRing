@@ -28,7 +28,14 @@ export class UIControls {
       radialSegments: Number(this.inputs.radialSegments.value),
       twistDegrees: Number(this.inputs.twistDegrees.value),
       profileScale: Number(this.inputs.profileScale.value),
-      taper: Number(this.inputs.taper.value)
+      taper: Number(this.inputs.taper.value),
+      ringRadius: Number(this.inputs.ringRadius.value),
+      thickness: Number(this.inputs.thickness.value),
+      arcDegrees: Number(this.inputs.arcDegrees.value),
+      scaleVariance: Number(this.inputs.scaleVariance.value),
+      scaleFrequency: Number(this.inputs.scaleFrequency.value),
+      tiltVariance: Number(this.inputs.tiltVariance.value),
+      tiltFrequency: Number(this.inputs.tiltFrequency.value)
     };
   }
 
@@ -55,7 +62,14 @@ export class UIControls {
       radialSegments: `${parameters.radialSegments}`,
       twistDegrees: `${parameters.twistDegrees.toFixed(0)}°`,
       profileScale: `${parameters.profileScale.toFixed(2)}×`,
-      taper: `${parameters.taper.toFixed(2)}`
+      taper: `${parameters.taper.toFixed(2)}`,
+      ringRadius: `${parameters.ringRadius.toFixed(2)}u`,
+      thickness: `${parameters.thickness.toFixed(2)}×`,
+      arcDegrees: `${parameters.arcDegrees.toFixed(0)}°`,
+      scaleVariance: `${parameters.scaleVariance.toFixed(2)}×`,
+      scaleFrequency: `${parameters.scaleFrequency.toFixed(1)}×`,
+      tiltVariance: `${parameters.tiltVariance.toFixed(1)}°`,
+      tiltFrequency: `${parameters.tiltFrequency.toFixed(1)}×`
     };
 
     (Object.keys(labelMap) as Array<keyof RingParameters>).forEach((key) => {
@@ -86,6 +100,34 @@ export class UIControls {
       <label data-control="taper">
         <span>Taper</span>
         <input type="range" min="-1" max="1" step="0.01" value="0" />
+      </label>
+      <label data-control="ringRadius">
+        <span>Ring Radius</span>
+        <input type="range" min="0.6" max="3" step="0.01" value="1.5" />
+      </label>
+      <label data-control="thickness">
+        <span>Thickness</span>
+        <input type="range" min="0.5" max="2" step="0.01" value="1" />
+      </label>
+      <label data-control="arcDegrees">
+        <span>Arc Span</span>
+        <input type="range" min="30" max="360" step="1" value="360" />
+      </label>
+      <label data-control="scaleVariance">
+        <span>Scale Variance</span>
+        <input type="range" min="0" max="0.6" step="0.01" value="0" />
+      </label>
+      <label data-control="scaleFrequency">
+        <span>Scale Frequency</span>
+        <input type="range" min="0" max="6" step="0.1" value="1.5" />
+      </label>
+      <label data-control="tiltVariance">
+        <span>Tilt Variance</span>
+        <input type="range" min="0" max="35" step="0.5" value="0" />
+      </label>
+      <label data-control="tiltFrequency">
+        <span>Tilt Frequency</span>
+        <input type="range" min="0" max="6" step="0.1" value="1.5" />
       </label>
     `;
 
