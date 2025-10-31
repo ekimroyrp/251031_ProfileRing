@@ -113,7 +113,7 @@ export class RingScene {
 
 function buildRingGeometry(points: Vector2[], parameters: RingParameters): BufferGeometry {
   const radialSegments = Math.max(8, Math.floor(parameters.radialSegments));
-  const profile = ensureClosedProfile(sampleProfile(points));
+  const profile = ensureClosedProfile(ensureCounterClockwise(sampleProfile(points)));
   const profileSegments = profile.length;
   const twistRadians = (parameters.twistDegrees * Math.PI) / 180;
 
@@ -215,4 +215,28 @@ function ensureClosedProfile(points: Vector2[]): Vector2[] {
   }
 
   return result;
+}
+
+function ensureCounterClockwise(points: Vector2[]): Vector2[] {
+  if (points.length < 3) {
+    return points;
+  }
+
+  const area = signedArea(points);
+  if (area >= 0) {
+    return points;
+  }
+
+  const reversed = points.slice().reverse();
+  return reversed;
+}
+
+function signedArea(points: Vector2[]): number {
+  let area = 0;
+  for (let i = 0; i < points.length; i += 1) {
+    const current = points[i];
+    const next = points[(i + 1) % points.length];
+    area += current.x * next.y - next.x * current.y;
+  }
+  return area / 2;
 }

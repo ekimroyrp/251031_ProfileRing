@@ -74,22 +74,18 @@ export class UIControls {
       <label data-control="radialSegments">
         <span>Profiles</span>
         <input type="range" min="12" max="256" step="1" value="96" />
-        <output></output>
       </label>
       <label data-control="twistDegrees">
         <span>Twist</span>
         <input type="range" min="-720" max="720" step="1" value="0" />
-        <output></output>
       </label>
       <label data-control="profileScale">
         <span>Scale</span>
         <input type="range" min="0.25" max="1.5" step="0.01" value="0.6" />
-        <output></output>
       </label>
       <label data-control="taper">
         <span>Taper</span>
         <input type="range" min="-1" max="1" step="0.01" value="0" />
-        <output></output>
       </label>
     `;
 
@@ -98,14 +94,16 @@ export class UIControls {
     ).map((label) => {
       const key = label.dataset.control as keyof RingParameters;
       const input = label.querySelector("input");
-      const output = label.querySelector("output");
+      const span = label.querySelector("span");
 
-      if (!input || !output) {
-        throw new Error(`Missing input/output for ${key}`);
+      if (!input || !span) {
+        throw new Error(`Missing input/span for ${key}`);
       }
 
       input.dataset.value = input.value;
+      const output = document.createElement("output");
       output.textContent = input.value;
+      span.append(output);
 
       return [key, input, output] as const;
     });

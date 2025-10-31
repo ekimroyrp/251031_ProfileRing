@@ -19,6 +19,7 @@ function bootstrap(): void {
       </div>
       <section class="viewport" data-role="viewport"></section>
       <section class="overlay">
+        <div class="panel" data-role="controls"></div>
         <div class="profile-suite">
           <canvas class="profile-editor" width="220" height="220"></canvas>
           <div class="profile-actions">
@@ -32,7 +33,6 @@ function bootstrap(): void {
             </label>
           </div>
         </div>
-        <div class="panel" data-role="controls"></div>
       </section>
     </div>
   `;
