@@ -104,3 +104,4 @@ function bootstrap(): void {
 }
 
 bootstrap();
+console.info("Profile Ring Designer ready");
