@@ -79,6 +79,7 @@ body {
   align-items: flex-start;
   gap: 0.75rem;
   z-index: 10;
+  max-width: 280px;
 }
 
 .profile-suite {
@@ -177,6 +178,9 @@ body {
   flex-direction: column;
   gap: 0.85rem;
   box-shadow: 0 20px 40px rgba(2, 6, 23, 0.45);
+  overflow: hidden;
+  flex-shrink: 1;
+  min-height: 0;
 }
 
 .panel h2 {
@@ -239,4 +243,43 @@ body {
   border: 1px solid rgba(14, 165, 233, 0.6);
   background: #f8fafc;
   box-shadow: 0 2px 6px rgba(14, 165, 233, 0.45);
+}
+
+.controls-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.controls-scroll__viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding-inline-end: 0.35rem;
+  padding-inline-start: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+  direction: rtl;
+}
+
+.controls-scroll__viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.controls-scroll__viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.controls-scroll__viewport::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
+}
+
+.controls-scroll__viewport > * {
+  direction: ltr;
+  text-align: left;
 }

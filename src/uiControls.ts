@@ -7,12 +7,14 @@ export class UIControls {
   private readonly inputs: Record<keyof RingParameters, HTMLInputElement>;
   private readonly outputs: Record<keyof RingParameters, HTMLOutputElement>;
   private readonly listeners = new Set<ParametersListener>();
+  private readonly scrollViewport: HTMLElement;
 
   constructor(container: HTMLElement) {
     this.container = container;
-    const { inputs, outputs } = this.createInputs();
+    const { inputs, outputs, viewport } = this.createInputs();
     this.inputs = inputs;
     this.outputs = outputs;
+    this.scrollViewport = viewport;
     this.bindEvents();
     this.emit();
   }
@@ -82,57 +84,62 @@ export class UIControls {
   private createInputs(): {
     inputs: Record<keyof RingParameters, HTMLInputElement>;
     outputs: Record<keyof RingParameters, HTMLOutputElement>;
+    viewport: HTMLElement;
   } {
     this.container.innerHTML = `
       <h2>Ring Array</h2>
-      <label data-control="radialSegments">
-        <span>Profiles</span>
-        <input type="range" min="12" max="256" step="1" value="96" />
-      </label>
-      <label data-control="twistDegrees">
-        <span>Twist</span>
-        <input type="range" min="-720" max="720" step="1" value="0" />
-      </label>
-      <label data-control="profileScale">
-        <span>Scale</span>
-        <input type="range" min="0.25" max="1.5" step="0.01" value="0.6" />
-      </label>
-      <label data-control="taper">
-        <span>Taper</span>
-        <input type="range" min="-1" max="1" step="0.01" value="0" />
-      </label>
-      <label data-control="ringRadius">
-        <span>Ring Radius</span>
-        <input type="range" min="0.6" max="3" step="0.01" value="1.5" />
-      </label>
-      <label data-control="thickness">
-        <span>Thickness</span>
-        <input type="range" min="0.5" max="2" step="0.01" value="1" />
-      </label>
-      <label data-control="arcDegrees">
-        <span>Arc Span</span>
-        <input type="range" min="30" max="360" step="1" value="360" />
-      </label>
-      <label data-control="scaleVariance">
-        <span>Scale Variance</span>
-        <input type="range" min="0" max="0.6" step="0.01" value="0" />
-      </label>
-      <label data-control="scaleFrequency">
-        <span>Scale Frequency</span>
-        <input type="range" min="0" max="6" step="0.1" value="1.5" />
-      </label>
-      <label data-control="tiltVariance">
-        <span>Tilt Variance</span>
-        <input type="range" min="0" max="35" step="0.5" value="0" />
-      </label>
-      <label data-control="tiltFrequency">
-        <span>Tilt Frequency</span>
-        <input type="range" min="0" max="6" step="0.1" value="1.5" />
-      </label>
+      <div class="controls-scroll">
+        <div class="controls-scroll__viewport" tabindex="0">
+          <label data-control="radialSegments">
+            <span>Profiles</span>
+            <input type="range" min="12" max="256" step="1" value="96" />
+          </label>
+          <label data-control="twistDegrees">
+            <span>Twist</span>
+            <input type="range" min="-720" max="720" step="1" value="0" />
+          </label>
+          <label data-control="profileScale">
+            <span>Scale</span>
+            <input type="range" min="0.25" max="1.5" step="0.01" value="0.6" />
+          </label>
+          <label data-control="taper">
+            <span>Taper</span>
+            <input type="range" min="-1" max="1" step="0.01" value="0" />
+          </label>
+          <label data-control="ringRadius">
+            <span>Ring Radius</span>
+            <input type="range" min="0.6" max="3" step="0.01" value="1.5" />
+          </label>
+          <label data-control="thickness">
+            <span>Thickness</span>
+            <input type="range" min="0.5" max="2" step="0.01" value="1" />
+          </label>
+          <label data-control="arcDegrees">
+            <span>Arc Span</span>
+            <input type="range" min="30" max="360" step="1" value="360" />
+          </label>
+          <label data-control="scaleVariance">
+            <span>Scale Variance</span>
+            <input type="range" min="0" max="0.6" step="0.01" value="0" />
+          </label>
+          <label data-control="scaleFrequency">
+            <span>Scale Frequency</span>
+            <input type="range" min="0" max="6" step="0.1" value="1.5" />
+          </label>
+          <label data-control="tiltVariance">
+            <span>Tilt Variance</span>
+            <input type="range" min="0" max="35" step="0.5" value="0" />
+          </label>
+          <label data-control="tiltFrequency">
+            <span>Tilt Frequency</span>
+            <input type="range" min="0" max="6" step="0.1" value="1.5" />
+          </label>
+        </div>
+      </div>
     `;
 
     const entries = Array.from(
-      this.container.querySelectorAll<HTMLLabelElement>("label[data-control]")
+      this.container.querySelectorAll<HTMLLabelElement>(".controls-scroll__viewport label[data-control]")
     ).map((label) => {
       const key = label.dataset.control as keyof RingParameters;
       const input = label.querySelector("input");
@@ -160,6 +167,24 @@ export class UIControls {
       HTMLOutputElement
     >;
 
-    return { inputs, outputs };
+    const viewport = this.container.querySelector<HTMLElement>(".controls-scroll__viewport");
+    if (!viewport) {
+      throw new Error("Missing controls scroll viewport.");
+    }
+
+    return {
+      inputs,
+      outputs,
+      viewport
+    };
+  }
+
+  public refreshScrollMetrics(): void {
+    const maxScroll = Math.max(0, this.scrollViewport.scrollHeight - this.scrollViewport.clientHeight);
+    if (maxScroll === 0) {
+      this.scrollViewport.scrollTop = 0;
+      return;
+    }
+    this.scrollViewport.scrollTop = Math.min(this.scrollViewport.scrollTop, maxScroll);
   }
 }

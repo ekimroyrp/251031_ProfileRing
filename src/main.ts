@@ -43,8 +43,21 @@ function bootstrap(): void {
   const addButton = root.querySelector<HTMLButtonElement>('[data-action="add-point"]');
   const removeButton = root.querySelector<HTMLButtonElement>('[data-action="remove-point"]');
   const presetSelect = root.querySelector<HTMLSelectElement>('[data-role="preset"]');
+  const hud = root.querySelector<HTMLElement>(".hud");
+  const overlay = root.querySelector<HTMLElement>(".overlay");
+  const profileSuite = root.querySelector<HTMLElement>(".profile-suite");
 
-  if (!viewport || !canvas || !controlsContainer || !addButton || !removeButton || !presetSelect) {
+  if (
+    !viewport ||
+    !canvas ||
+    !controlsContainer ||
+    !addButton ||
+    !removeButton ||
+    !presetSelect ||
+    !hud ||
+    !overlay ||
+    !profileSuite
+  ) {
     throw new Error("Failed to initialize application layout.");
   }
 
@@ -98,6 +111,34 @@ function bootstrap(): void {
     currentParameters = parameters;
     updateRing();
   });
+
+  const updateLayoutMetrics = () => {
+    const verticalMargin = 24;
+    const hudBottom = hud.offsetTop + hud.offsetHeight;
+    const topOffset = hudBottom + verticalMargin;
+
+    overlay.style.top = `${topOffset}px`;
+    overlay.style.bottom = `${verticalMargin}px`;
+
+    const overlayStyles = getComputedStyle(overlay);
+    const gap = parseFloat(overlayStyles.gap || "0");
+    const overlayHeight = overlay.clientHeight;
+    const suiteHeight = profileSuite.offsetHeight;
+    const availableForPanel = overlayHeight - suiteHeight - gap;
+    const panelHeight = Math.max(0, availableForPanel);
+
+    if (panelHeight > 0) {
+      controlsContainer.style.maxHeight = `${panelHeight}px`;
+      controlsContainer.style.height = `${panelHeight}px`;
+    } else {
+      controlsContainer.style.maxHeight = "";
+      controlsContainer.style.height = "";
+    }
+    uiControls.refreshScrollMetrics();
+  };
+
+  window.addEventListener("resize", updateLayoutMetrics);
+  updateLayoutMetrics();
 
   refreshProfileActions();
   updateRing();
