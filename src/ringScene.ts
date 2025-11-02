@@ -184,16 +184,19 @@ function buildRingGeometry(points: Vector2[], parameters: RingParameters): Buffe
     const cosTwist = Math.cos(twist);
     const sinTwist = Math.sin(twist);
     const scaleFactor = Math.max(0.2, 1 + parameters.taper * ramp);
-    const scaleWave =
-      1 + scaleVariance * Math.sin(segmentT * scaleFrequency * TAU);
+    const scaleRamp = scaleVariance * symmetricRamp(segmentT);
+    const scaleOscillation =
+      scaleFrequency > 0 ? Math.sin(segmentT * scaleFrequency * TAU) : 0;
+    const scaleWave = 1 + scaleRamp * scaleOscillation;
     const localScale = baseScaleClamp * scaleFactor * Math.max(0.25, scaleWave);
 
     baseRadial.set(Math.cos(angle), 0, Math.sin(angle));
     center.copy(baseRadial).multiplyScalar(parameters.ringRadius);
     tangent.set(-Math.sin(angle), 0, Math.cos(angle));
 
+    const tiltRamp = tiltAmplitude * symmetricRamp(segmentT);
     const tiltAngle =
-      tiltAmplitude * Math.sin(segmentT * tiltFrequency * TAU);
+      tiltFrequency > 0 ? tiltRamp * Math.sin(segmentT * tiltFrequency * TAU) : 0;
     if (Math.abs(tiltAngle) > 1e-4) {
       tiltQuaternion.setFromAxisAngle(tangent, tiltAngle);
       radialTilted.copy(baseRadial).applyQuaternion(tiltQuaternion);
