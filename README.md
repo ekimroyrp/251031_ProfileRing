@@ -1,4 +1,4 @@
-# Profile Ring Designer
+# 251031_ProfileRing
 
 Interactive Three.js playground for sculpting procedural ring geometries. Sketch a custom 2D cross-section, array it around a circular path, and instantly preview the resulting mesh with configurable twist, scale, and taper parameters.
 
